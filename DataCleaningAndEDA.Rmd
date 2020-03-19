@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+The following is the head of the data.
+```{r}
+library(corrplot)
+train = read.csv('train.csv')
+train = train[, -1]
+head(train)
+```
+
+In this report we focus on data cleaning and EDA. We have removed 12 features that had more than 6000 NA values. After the features were dropped, we also dropped rows that had NA values.
+
+Removing the columns with NAs greater than 6000(more than 10% of data)
+
+```{r}
+#sapply(train, function(x) sum(is.na(x)))
+#rm(train_imp)
+#removing the columns with NAs greater than 6000(more than 10% of data)
+train_imp=train
+x = list()
+count =1
+for (i in 1:128){
+  if (sum(is.na(train[,i]))>6000){
+    x[count] = i
+    count = count+1
+  } 
+}
+x = unlist(x)
+train_imp = train[,-x]
+train_imp = na.omit(train_imp)
+train_imp$Product_Info_2 = as.numeric(train_imp$Product_Info_2)
+
+write.csv(train_imp, "Final-Train.csv")
+```
+
+Dim after cleaning.
+
+```{r}
+dim(train_imp)
+```
+
+Let us now find out the distribution of classes in the data.
+```{r}
+hist(train_imp$Response, xlab="Classes", xlim=c(1,8), col="darkmagenta", 
+     main= "Class distribution",
+     las = 1,
+     breaks=8)
+classCount = rep(0, 8)
+classPercTotal = rep(0, 8)
+for(i in 1:8){
+  classCount[i] = length(train_imp$Response[train_imp$Response == i])
+  classPercTotal[i] = round((classCount[i] / nrow(train_imp))*100, 2)
+}
+classes = seq(1,8)
+```
+
+It can be seen that there aren't as many samples for class 3(1013) and class 4(1428), as there are for other classes. Out assumption is that they still should be enough.
+
+We have split the data into 80% train and 20% test. Here are the plots that show the class distribution of the train and test data. 
+
+```{r}
+set.seed(7)
+totalRows = dim(train)[1]
+trainIndices = sample( c(1:totalRows), totalRows*0.80)
+finalTrain = train_imp[trainIndices, ]
+finalTest = train_imp[-trainIndices, ]
+
+classCountTrain = rep(0, 8)
+classPercTrain = rep(0, 8)
+classCountTest = rep(0, 8)
+classPercTest = rep(0, 8)
+for(i in 1:8){
+  classCountTrain[i] = length(finalTrain$Response[finalTrain$Response == i])
+  classPercTrain[i] = round((classCountTrain[i] / nrow(finalTrain))*100, 2)
+  classCountTest[i] = length(finalTest$Response[finalTest$Response == i])
+  classPercTest[i] = round((classCountTest[i] / nrow(finalTest))*100, 2)
+}
+classes = seq(1,8)
+```
+
+Distribution for the train data
+```{r}
+hist(finalTrain$Response, main = "Class distribution(Training Data)", freq = FALSE )
+```
+
+Distribution for the test data
+```{r}
+hist(finalTest$Response, main = "Class distribution(Test Data)", freq = FALSE)
+compTable = data.frame(classes, classPercTotal, classPercTrain, classPercTest)
+colnames(compTable) <- c("Classes", "Percentage(Full)", "Percentage(Train)", "Percentage(Test)")
+compTable
+```
+
+
+
